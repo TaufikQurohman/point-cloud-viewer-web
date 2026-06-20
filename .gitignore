@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# Storage contents (keep directory structure via .gitkeep, ignore data)
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/normalized/*
+!storage/normalized/.gitkeep
+storage/converted/*
+!storage/converted/.gitkeep
+storage/temp/*
+!storage/temp/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+
+# Potree vendored library (large, fetched separately per README)
+public/potree/*
+!public/potree/.gitkeep
+!public/potree/README.md
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
