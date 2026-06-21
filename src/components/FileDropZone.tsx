@@ -68,17 +68,18 @@ export function FileDropZone({
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
         className={[
-          'relative flex flex-col items-center justify-center rounded-xl border px-6 py-16 text-center cursor-pointer transition-all',
+          'relative flex flex-col items-center justify-center px-6 py-16 text-center cursor-pointer transition-colors border-2',
           disabled
-            ? 'opacity-50 cursor-not-allowed border-white/[0.08] bg-white/[0.01]'
+            ? 'opacity-50 cursor-not-allowed border-grid-300 bg-paper-200'
             : isDragOver
-              ? 'border-signal-400/60 bg-signal-400/[0.06]'
-              : 'border-white/[0.1] bg-white/[0.015] hover:border-signal-400/30 hover:bg-white/[0.03]'
+              ? 'border-survey-500 bg-survey-50'
+              : 'border-ink-400 bg-paper-50 hover:border-ink-700'
         ].join(' ')}
-        style={{
-          borderStyle: 'dashed'
-        }}
+        style={{ borderStyle: isDragOver ? 'solid' : 'dashed' }}
       >
+        {/* Corner ticks, like crop marks on a printed survey sheet. */}
+        <CornerTicks />
+
         <input
           ref={inputRef}
           type="file"
@@ -90,10 +91,8 @@ export function FileDropZone({
 
         <div
           className={[
-            'mb-4 flex h-12 w-12 items-center justify-center rounded-lg border transition-colors',
-            isDragOver
-              ? 'border-signal-400/40 bg-signal-400/10 text-signal-300'
-              : 'border-white/10 bg-white/[0.03] text-ink-300'
+            'mb-4 flex h-12 w-12 items-center justify-center border-2 transition-colors',
+            isDragOver ? 'border-survey-500 text-survey-600' : 'border-ink-500 text-ink-500'
           ].join(' ')}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
@@ -103,24 +102,19 @@ export function FileDropZone({
 
         {selectedFile ? (
           <>
-            <p className="font-mono text-sm text-ink-50">{selectedFile.name}</p>
-            <p className="text-xs text-ink-400 mt-1.5 font-mono">
-              {formatBytes(selectedFile.size)}
-            </p>
+            <p className="font-mono text-sm text-ink-700">{selectedFile.name}</p>
+            <p className="text-xs text-ink-400 mt-1.5 font-mono">{formatBytes(selectedFile.size)}</p>
           </>
         ) : (
           <>
-            <p className="font-medium text-ink-100">Drop a point cloud file here</p>
+            <p className="font-medium text-ink-600">Drop a point cloud file here</p>
             <p className="text-sm text-ink-400 mt-1">or click to browse</p>
           </>
         )}
 
         <div className="mt-5 flex flex-wrap justify-center gap-1.5">
           {ACCEPTED_EXTENSIONS.map((ext) => (
-            <span
-              key={ext}
-              className="text-[10px] font-mono font-medium px-2 py-0.5 rounded border border-white/10 text-ink-400"
-            >
+            <span key={ext} className="text-[10px] font-mono font-medium px-2 py-0.5 border border-grid-400 text-ink-400">
               .{ext}
             </span>
           ))}
@@ -128,10 +122,22 @@ export function FileDropZone({
       </div>
 
       {selectedFile && !isValidExtension && (
-        <p className="mt-2 text-sm text-red-400">
+        <p className="mt-2 text-sm text-rust-500">
           &ldquo;.{getExtension(selectedFile.name)}&rdquo; is not a supported format.
         </p>
       )}
     </div>
+  );
+}
+
+function CornerTicks(): JSX.Element {
+  const tick = 'absolute h-3 w-3 border-ink-500';
+  return (
+    <>
+      <span className={`${tick} top-2 left-2 border-l-2 border-t-2`} />
+      <span className={`${tick} top-2 right-2 border-r-2 border-t-2`} />
+      <span className={`${tick} bottom-2 left-2 border-l-2 border-b-2`} />
+      <span className={`${tick} bottom-2 right-2 border-r-2 border-b-2`} />
+    </>
   );
 }

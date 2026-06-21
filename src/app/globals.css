@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,15 +10,15 @@ body {
 }
 
 body {
-  @apply bg-ink-950 text-ink-100 antialiased;
+  @apply bg-paper-100 text-ink-700 antialiased;
   font-feature-settings: 'tnum' 1;
 }
 
 ::selection {
-  background-color: rgba(34, 211, 238, 0.25);
+  background-color: rgba(61, 107, 79, 0.18);
 }
 
-/* Thin, low-contrast scrollbars that fit the instrument-panel aesthetic. */
+/* Scrollbars tuned to the paper palette instead of the browser default grey. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -27,43 +27,47 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  background-color: rgba(63, 107, 79, 0.18);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(63, 107, 79, 0.32);
 }
 
 /* Visible keyboard focus everywhere, instead of the browser default. */
 :focus-visible {
-  outline: 2px solid rgba(34, 211, 238, 0.6);
+  outline: 2px solid #3D6B4F;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 @layer utilities {
-  .bg-grid-fine {
+  /* Millimeter grid paper background, the page's structural motif. */
+  .bg-grid-mm {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-    background-size: 24px 24px;
+      linear-gradient(rgba(63, 107, 79, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63, 107, 79, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
-  .text-glow-signal {
-    text-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  .bg-grid-mm-fine {
+    background-image:
+      linear-gradient(rgba(63, 107, 79, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(63, 107, 79, 0.05) 1px, transparent 1px);
+    background-size: 8px 8px;
   }
 
-  .mask-fade-b {
-    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  /* A stamped/embossed look for badges and reference marks. */
+  .stamp-border {
+    border: 1.5px solid currentColor;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.4);
   }
 }
 
-/* Traveling pulse used by the home page's pipeline diagram
-   (PipelineDiagram in src/app/page.tsx). Defined globally here, rather
-   than via an inline <style> tag in the component, because React escapes
-   quote characters differently between server-rendered and client-
-   rendered <style> text nodes, which previously caused a hydration
-   mismatch error. */
+/* Traveling pulse used by the home page's pipeline diagram. Defined
+   globally (not via inline <style> in the component) to avoid a
+   server/client hydration mismatch from React's quote-escaping in
+   rendered <style> text nodes. */
 @keyframes travel {
   0% {
     left: 0%;
@@ -94,7 +98,9 @@ body {
 /* Potree Viewer requires its container to have explicit pixel dimensions
    and relies on its own internal CSS for the renderer canvas and UI
    panels. We scope a minimal reset here so Tailwind's base styles don't
-   fight with Potree's injected DOM. */
+   fight with Potree's injected DOM. The viewer canvas itself stays dark
+   regardless of the app's light theme, since point cloud data needs a
+   dark backdrop for visual contrast. */
 #potree_render_area {
   position: absolute;
   inset: 0;
@@ -105,5 +111,5 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #0a0d14;
+  background-color: #1a1f1c;
 }

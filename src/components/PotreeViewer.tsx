@@ -245,7 +245,7 @@ export function PotreeViewer({
           <div className="flex flex-col items-center gap-4">
             <div className="relative h-12 w-12">
               <span className="absolute inset-0 rounded-full border-2 border-white/10" />
-              <span className="absolute inset-0 rounded-full border-2 border-t-brand-400 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              <span className="absolute inset-0 rounded-full border-2 border-t-[#7FA98C] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
             </div>
             <span className="text-white/70 tracking-wide">
               {state === 'loading-library' ? 'Loading Potree Viewer…' : 'Loading point cloud data…'}
@@ -287,14 +287,14 @@ function ViewerToolbar({
   onResetView
 }: ViewerToolbarProps): JSX.Element {
   return (
-    <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-xl border border-white/10 bg-[#11151c]/80 backdrop-blur-md px-2 py-1.5 shadow-lg shadow-black/30">
+    <div className="absolute top-4 left-4 z-10 flex items-center gap-2 border border-ink-400 bg-paper-100/95 backdrop-blur-sm px-2 py-1.5 shadow-md">
       <ToolbarButton onClick={onResetView} label="Reset view">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
         </svg>
       </ToolbarButton>
 
-      <div className="h-5 w-px bg-white/10" />
+      <div className="h-5 w-px bg-grid-400" />
 
       <ToolbarToggle active={edlEnabled} onClick={onToggleEdl} label="Eye Dome Lighting">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
@@ -303,14 +303,14 @@ function ViewerToolbar({
         </svg>
       </ToolbarToggle>
 
-      <div className="h-5 w-px bg-white/10" />
+      <div className="h-5 w-px bg-grid-400" />
 
       <div className="flex items-center gap-1.5 px-1">
-        <span className="text-[11px] font-medium text-white/50 select-none">Points</span>
+        <span className="text-[11px] font-mono font-medium text-ink-400 select-none">PTS</span>
         <select
           value={pointBudget}
           onChange={(e) => onPointBudgetChange(Number(e.target.value))}
-          className="bg-transparent text-[11px] font-medium text-white/90 focus:outline-none cursor-pointer [&>option]:bg-[#11151c] [&>option]:text-white"
+          className="bg-transparent text-[11px] font-mono font-medium text-ink-700 focus:outline-none cursor-pointer"
         >
           {POINT_BUDGET_PRESETS.map((preset) => (
             <option key={preset} value={preset}>
@@ -338,7 +338,7 @@ function ToolbarButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+      className="flex h-8 w-8 items-center justify-center text-ink-500 hover:text-ink-700 hover:bg-paper-200 transition-colors"
     >
       {children}
     </button>
@@ -364,8 +364,8 @@ function ToolbarToggle({
       aria-label={label}
       aria-pressed={active}
       className={[
-        'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
-        active ? 'text-brand-300 bg-brand-500/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+        'flex h-8 w-8 items-center justify-center transition-colors',
+        active ? 'text-survey-700 bg-survey-100' : 'text-ink-500 hover:text-ink-700 hover:bg-paper-200'
       ].join(' ')}
     >
       {children}

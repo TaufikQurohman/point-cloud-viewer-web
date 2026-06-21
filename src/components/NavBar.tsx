@@ -4,63 +4,77 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
-  { href: '/upload', label: 'Upload' },
-  { href: '/datasets', label: 'Datasets' }
+  { href: '/upload', label: 'Upload', code: '01' },
+  { href: '/datasets', label: 'Datasets', code: '02' }
 ] as const;
 
 export function NavBar(): JSX.Element {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-ink-950/90 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <OctreeMark />
-          <span className="flex flex-col leading-none">
-            <span className="font-semibold text-ink-50 tracking-tight text-[15px]">
-              Point&nbsp;Cloud&nbsp;Viewer
+    <header className="sticky top-0 z-40 bg-paper-100/95 backdrop-blur-sm border-b-2 border-ink-700">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="h-[4.5rem] flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <BenchmarkMark />
+            <span className="flex flex-col leading-none">
+              <span className="font-display font-semibold text-ink-700 text-[17px] tracking-tight">
+                Point Cloud Viewer
+              </span>
+              <span className="font-mono text-[10px] text-ink-500 tracking-[0.15em] uppercase mt-1">
+                Survey &amp; Conversion Station
+              </span>
             </span>
-            <span className="font-mono text-[10px] text-ink-400 tracking-widest uppercase mt-0.5">
-              local · filesystem
-            </span>
-          </span>
-        </Link>
+          </Link>
 
-        <nav className="flex items-center gap-1">
-          {NAV_LINKS.map((link) => {
-            const active = pathname === link.href || pathname?.startsWith(link.href + '/');
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={[
-                  'relative px-3.5 py-2 rounded-md text-sm font-medium transition-colors',
-                  active ? 'text-signal-300' : 'text-ink-300 hover:text-ink-50'
-                ].join(' ')}
-              >
-                {link.label}
-                {active && (
-                  <span className="absolute left-3.5 right-3.5 -bottom-px h-px bg-signal-400" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="flex items-center gap-8">
+            {NAV_LINKS.map((link) => {
+              const active = pathname === link.href || pathname?.startsWith(link.href + '/');
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="group flex items-center gap-2"
+                >
+                  <span
+                    className={[
+                      'font-mono text-[10px] tracking-wider transition-colors',
+                      active ? 'text-rust-400' : 'text-ink-400 group-hover:text-rust-400'
+                    ].join(' ')}
+                  >
+                    {link.code}
+                  </span>
+                  <span
+                    className={[
+                      'text-sm font-medium transition-colors border-b-[1.5px] pb-0.5',
+                      active
+                        ? 'text-ink-700 border-rust-400'
+                        : 'text-ink-500 border-transparent group-hover:text-ink-700 group-hover:border-ink-400'
+                    ].join(' ')}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </div>
     </header>
   );
 }
 
-/** Small signature mark: an octree subdivision motif (root + recursive split). */
-function OctreeMark(): JSX.Element {
+/** Signature mark: a survey benchmark disc with a centered sight cross. */
+function BenchmarkMark(): JSX.Element {
   return (
-    <span className="relative flex h-8 w-8 items-center justify-center rounded-md bg-ink-850 border border-white/[0.08]">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0.5" y="0.5" width="15" height="15" rx="1.5" stroke="#2dd4bf" strokeOpacity="0.5" />
-        <rect x="0.5" y="0.5" width="7" height="7" rx="1" fill="#22d3ee" fillOpacity="0.85" />
-        <rect x="8.5" y="0.5" width="7" height="7" rx="1" stroke="#22d3ee" strokeOpacity="0.45" />
-        <rect x="0.5" y="8.5" width="7" height="7" rx="1" stroke="#22d3ee" strokeOpacity="0.45" />
-        <rect x="9" y="9" width="3" height="3" rx="0.5" fill="#5eead4" />
+    <span className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-ink-700 bg-paper-50">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="9" cy="9" r="7.5" stroke="#3D6B4F" strokeWidth="1" />
+        <circle cx="9" cy="9" r="2.5" fill="#B5472B" />
+        <line x1="9" y1="0.5" x2="9" y2="3.5" stroke="#1F2B24" strokeWidth="1" />
+        <line x1="9" y1="14.5" x2="9" y2="17.5" stroke="#1F2B24" strokeWidth="1" />
+        <line x1="0.5" y1="9" x2="3.5" y2="9" stroke="#1F2B24" strokeWidth="1" />
+        <line x1="14.5" y1="9" x2="17.5" y2="9" stroke="#1F2B24" strokeWidth="1" />
       </svg>
     </span>
   );

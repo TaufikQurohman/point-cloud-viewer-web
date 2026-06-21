@@ -15,7 +15,7 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-grid-fine">
+      <body className="min-h-screen flex flex-col bg-grid-mm">
         <NavBar />
         <main className="flex-1">{children}</main>
       </body>
