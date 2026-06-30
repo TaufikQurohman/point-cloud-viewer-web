@@ -2,46 +2,46 @@ import type { DatasetStatus } from '@/lib/types';
 
 const STATUS_STYLES: Record<
   DatasetStatus,
-  { label: string; text: string; border: string; bg: string; pulse?: boolean }
+  { label: string; text: string; bg: string; border: string; pulse?: boolean }
 > = {
   uploaded: {
     label: 'Uploaded',
-    text: 'text-ink-500',
-    border: 'border-ink-400',
-    bg: 'bg-paper-50'
+    text: 'text-neutral-600',
+    bg: 'bg-neutral-200',
+    border: 'border-black/[0.06]'
   },
   validating: {
     label: 'Validating',
-    text: 'text-rust-500',
-    border: 'border-rust-400',
-    bg: 'bg-rust-50',
+    text: 'text-amber-700',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
     pulse: true
   },
   converting: {
     label: 'Converting · PDAL',
-    text: 'text-rust-500',
-    border: 'border-rust-400',
-    bg: 'bg-rust-50',
+    text: 'text-amber-700',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
     pulse: true
   },
   processing: {
     label: 'Processing · Potree',
-    text: 'text-survey-600',
-    border: 'border-survey-500',
-    bg: 'bg-survey-50',
+    text: 'text-accent-500',
+    bg: 'bg-accent-50',
+    border: 'border-accent-100',
     pulse: true
   },
   ready: {
     label: 'Ready',
-    text: 'text-survey-700',
-    border: 'border-survey-600',
-    bg: 'bg-survey-100'
+    text: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200'
   },
   failed: {
     label: 'Failed',
-    text: 'text-rust-600',
-    border: 'border-rust-500',
-    bg: 'bg-rust-100'
+    text: 'text-red-600',
+    bg: 'bg-red-50',
+    border: 'border-red-200'
   }
 };
 
@@ -50,9 +50,9 @@ export function StatusBadge({ status }: { status: DatasetStatus }): JSX.Element 
   return (
     <span
       className={[
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border text-[11px] font-mono font-medium uppercase tracking-wide',
-        style.border,
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.78rem] font-bold',
         style.bg,
+        style.border,
         style.text
       ].join(' ')}
     >

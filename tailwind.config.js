@@ -7,68 +7,55 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Paper: warm cream base, like survey field-book paper, not sterile white.
-        paper: {
-          50: '#FFFFFF',
-          100: '#FAF8F3',
-          200: '#F2EEE3',
-          300: '#E8E1D1',
-          400: '#D6CCB3'
+        // Apple-style neutral scale, matching CloudScope's --bg / --surface / --text / --muted.
+        neutral: {
+          50: '#FBFBFD',
+          100: '#F5F5F7',
+          200: '#EDEDF2',
+          300: '#E8E8ED',
+          400: '#DEDEE4',
+          500: '#C7C7CC',
+          600: '#6E6E73',
+          700: '#3A3A3C',
+          800: '#1D1D1F',
+          900: '#0F0F10'
         },
-        // Ink: dark green-black, like classic surveyor's drafting ink.
-        ink: {
-          400: '#5C6B5F',
-          500: '#3F4D42',
-          600: '#2C382F',
-          700: '#1F2B24',
-          800: '#16201A',
-          900: '#0F1712'
+        // Primary accent: Apple system blue.
+        accent: {
+          50: '#EFF6FF',
+          100: '#DCEBFF',
+          400: '#0071E3',
+          500: '#0064C8',
+          600: '#0050A0'
         },
-        // Survey green: the primary accent, color of old theodolites and
-        // engineering instrument enamel.
-        survey: {
-          50: '#EEF4F0',
-          100: '#D6E5DA',
-          200: '#AFCBB7',
-          300: '#7FA98C',
-          400: '#528763',
-          500: '#3D6B4F',
-          600: '#2F5440',
-          700: '#244033',
-          800: '#1B3026'
-        },
-        // Rust/terracotta: secondary accent, the color of a benchmark stamp
-        // or surveyor's chalk line.
-        rust: {
-          50: '#FBEEE9',
-          100: '#F4D4C6',
-          200: '#E5AC92',
-          300: '#D17F5C',
-          400: '#B5472B',
-          500: '#9A3A22',
-          600: '#7C2E1B'
-        },
-        // Grid/border lines: muted brown-gray, like faded blueprint lines.
-        grid: {
-          200: '#E5DFCE',
-          300: '#D8CFB5',
-          400: '#BBAF8E'
+        // Viewer surfaces stay dark regardless of the light theme.
+        viewer: {
+          bg: '#15171C',
+          panel: '#1D2028',
+          sidebar: '#F7F7F9'
         }
       },
       fontFamily: {
-        display: ['"Spectral"', 'ui-serif', 'Georgia', 'serif'],
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          '"Segoe UI"',
+          'Inter',
+          'Roboto',
+          'Arial',
+          'sans-serif'
+        ],
+        mono: ['"SF Mono"', 'Consolas', 'ui-monospace', 'monospace']
       },
-      backgroundImage: {
-        'grid-mm':
-          'linear-gradient(rgba(63,107,79,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(63,107,79,0.08) 1px, transparent 1px)',
-        'grid-mm-fine':
-          'linear-gradient(rgba(63,107,79,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(63,107,79,0.04) 1px, transparent 1px)'
+      borderRadius: {
+        xl2: '32px',
+        lg2: '24px',
+        md2: '16px'
       },
-      backgroundSize: {
-        'grid-mm': '32px 32px',
-        'grid-mm-fine': '8px 8px'
+      boxShadow: {
+        soft: '0 14px 36px rgba(0,0,0,0.07)',
+        elevated: '0 24px 60px rgba(0,0,0,0.10)'
       }
     }
   },

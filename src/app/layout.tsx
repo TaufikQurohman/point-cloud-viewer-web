@@ -3,7 +3,7 @@ import './globals.css';
 import { NavBar } from '@/components/NavBar';
 
 export const metadata: Metadata = {
-  title: 'Universal Point Cloud Viewer',
+  title: 'CloudScope — Point Cloud Viewer',
   description:
     'Upload, convert, and visualize point cloud datasets (E57, PLY, PTS, XYZ, LAS, LAZ) using PDAL, PotreeConverter, and Potree Viewer.'
 };
@@ -15,7 +15,7 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-grid-mm">
+      <body className="min-h-screen flex flex-col">
         <NavBar />
         <main className="flex-1">{children}</main>
       </body>

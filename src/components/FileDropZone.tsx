@@ -16,8 +16,10 @@ function getExtension(fileName: string): string {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0)} ${units[i]}`;
 }
 
 export function FileDropZone({
@@ -68,18 +70,14 @@ export function FileDropZone({
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
         className={[
-          'relative flex flex-col items-center justify-center px-6 py-16 text-center cursor-pointer transition-colors border-2',
+          'flex flex-col items-center justify-center min-h-[260px] rounded-lg2 border-[1.5px] border-dashed px-8 py-8 text-center cursor-pointer transition-all',
           disabled
-            ? 'opacity-50 cursor-not-allowed border-grid-300 bg-paper-200'
+            ? 'opacity-50 cursor-not-allowed border-black/[0.16] bg-neutral-100'
             : isDragOver
-              ? 'border-survey-500 bg-survey-50'
-              : 'border-ink-400 bg-paper-50 hover:border-ink-700'
+              ? 'border-accent-400 bg-accent-50 -translate-y-px'
+              : 'border-black/[0.16] bg-neutral-50 hover:border-accent-400 hover:bg-[#f4f9ff]'
         ].join(' ')}
-        style={{ borderStyle: isDragOver ? 'solid' : 'dashed' }}
       >
-        {/* Corner ticks, like crop marks on a printed survey sheet. */}
-        <CornerTicks />
-
         <input
           ref={inputRef}
           type="file"
@@ -89,32 +87,32 @@ export function FileDropZone({
           onChange={(e) => handleFiles(e.target.files)}
         />
 
-        <div
-          className={[
-            'mb-4 flex h-12 w-12 items-center justify-center border-2 transition-colors',
-            isDragOver ? 'border-survey-500 text-survey-600' : 'border-ink-500 text-ink-500'
-          ].join(' ')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-5 w-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V4.5m0 0L7.5 9m4.5-4.5L16.5 9M4.5 16.5v2.25A2.25 2.25 0 006.75 21h10.5a2.25 2.25 0 002.25-2.25V16.5" />
-          </svg>
+        <div className="mb-3.5 grid h-[58px] w-[58px] place-items-center rounded-md2 bg-neutral-800 text-2xl text-white">
+          ⌁
         </div>
 
         {selectedFile ? (
           <>
-            <p className="font-mono text-sm text-ink-700">{selectedFile.name}</p>
-            <p className="text-xs text-ink-400 mt-1.5 font-mono">{formatBytes(selectedFile.size)}</p>
+            <h3 className="text-[1.4rem] leading-tight tracking-[-0.02em] text-neutral-800 mb-1">
+              {selectedFile.name}
+            </h3>
+            <p className="text-neutral-600 mb-3.5">{formatBytes(selectedFile.size)}</p>
           </>
         ) : (
           <>
-            <p className="font-medium text-ink-600">Drop a point cloud file here</p>
-            <p className="text-sm text-ink-400 mt-1">or click to browse</p>
+            <h3 className="text-[1.4rem] leading-tight tracking-[-0.02em] text-neutral-800 mb-1">
+              Drop file here
+            </h3>
+            <p className="text-neutral-600 mb-3.5">or click to choose a file from your computer</p>
           </>
         )}
 
-        <div className="mt-5 flex flex-wrap justify-center gap-1.5">
+        <div className="flex flex-wrap justify-center gap-1">
           {ACCEPTED_EXTENSIONS.map((ext) => (
-            <span key={ext} className="text-[10px] font-mono font-medium px-2 py-0.5 border border-grid-400 text-ink-400">
+            <span
+              key={ext}
+              className="inline-flex m-1 rounded-full bg-neutral-200 px-2.5 py-1.5 text-[0.82rem] font-bold text-neutral-700"
+            >
               .{ext}
             </span>
           ))}
@@ -122,22 +120,10 @@ export function FileDropZone({
       </div>
 
       {selectedFile && !isValidExtension && (
-        <p className="mt-2 text-sm text-rust-500">
+        <p className="mt-2 text-sm text-red-600">
           &ldquo;.{getExtension(selectedFile.name)}&rdquo; is not a supported format.
         </p>
       )}
     </div>
-  );
-}
-
-function CornerTicks(): JSX.Element {
-  const tick = 'absolute h-3 w-3 border-ink-500';
-  return (
-    <>
-      <span className={`${tick} top-2 left-2 border-l-2 border-t-2`} />
-      <span className={`${tick} top-2 right-2 border-r-2 border-t-2`} />
-      <span className={`${tick} bottom-2 left-2 border-l-2 border-b-2`} />
-      <span className={`${tick} bottom-2 right-2 border-r-2 border-b-2`} />
-    </>
   );
 }
