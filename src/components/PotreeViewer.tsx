@@ -1,25 +1,53 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { loadScriptsInOrder, loadStylesheet } from '@/lib/utils/script-loader';
 
 /**
  * Loosely-typed shape of the global `Potree` object exposed by
  * /public/potree/build/potree/potree.js. Potree does not ship official
  * TypeScript types, so we declare only the surface this component uses.
+ *
+ * IMPORTANT API NOTE: point size and color are NOT controlled through
+ * methods on the Viewer instance (there is no `viewer.setPointSize()` —
+ * that method does not exist in Potree, confirmed against the official
+ * examples and a GitHub issue asking for exactly that feature). They are
+ * controlled through properties on `pointcloud.material`, the object
+ * handed back in the `loadPointCloud` callback:
+ *   material.size                -> point size in pixels
+ *   material.pointSizeType       -> Potree.PointSizeType.FIXED / ADAPTIVE / ATTENUATED
+ *   material.activeAttributeName -> 'rgba' / 'elevation' / 'intensity' / 'classification'
+ *   material.shape               -> Potree.PointShape.SQUARE / CIRCLE
+ *
+ * NOTE ON REF FORWARDING: next/dynamic breaks React's forwardRef mechanism —
+ * the ref passed to a dynamic()-wrapped component is never assigned, so
+ * viewerRef.current stays null indefinitely. We solve this by using an
+ * `onReady` callback prop instead: PotreeViewer calls `onReady(handle)` once
+ * the point cloud finishes loading, handing the live handle object directly
+ * to the parent without going through the broken ref channel.
  */
+interface PotreePointCloudMaterial {
+  size: number;
+  pointSizeType: number;
+  activeAttributeName: string;
+  shape: number;
+}
+
 interface PotreePointCloud {
   position: { set: (x: number, y: number, z: number) => void };
-  material: { size: number; pointSizeType: number };
+  material: PotreePointCloudMaterial;
+  pcoGeometry?: {
+    pointAttributes?: {
+      attributes?: Array<{ name: string }>;
+    };
+  };
 }
 
 interface PotreeViewerInstance {
   setEDLEnabled: (enabled: boolean) => void;
   setFOV: (fov: number) => void;
   setPointBudget: (budget: number) => void;
-  setPointSize?: (size: number) => void;
-  getPointBudget?: () => number;
-  loadGUI?: (callback?: () => void) => void;
+  setBackground?: (background: 'skybox' | 'gradient' | 'black' | 'white') => void;
   scene: {
     addPointCloud: (pointcloud: PotreePointCloud) => void;
     view: {
@@ -37,7 +65,8 @@ interface PotreeGlobal {
     name: string,
     callback: (event: { type: string; pointcloud?: PotreePointCloud }) => void
   ) => void;
-  PointSizeType: { ADAPTIVE: number };
+  PointSizeType: { FIXED: number; ADAPTIVE: number; ATTENUATED: number };
+  PointShape: { SQUARE: number; CIRCLE: number };
 }
 
 declare global {
@@ -89,49 +118,49 @@ const STYLE_SOURCES = [
 
 export type ViewerLoadState = 'loading-library' | 'loading-dataset' | 'ready' | 'error';
 
-/** Imperative controls exposed to the parent page (the sidebar lives outside this component). */
+/** The color modes this UI exposes, mapped to Potree activeAttributeName strings. */
+export type ColorMode = 'rgb' | 'height' | 'intensity' | 'classification';
+
+/** The background modes this UI exposes, mapped to real viewer.setBackground() values. */
+export type BackgroundMode = 'gradient' | 'black' | 'white';
+
+/**
+ * Live imperative controls over the Potree viewer, delivered to the parent
+ * via the `onReady` callback prop once the point cloud finishes loading.
+ * Using a callback instead of forwardRef avoids the next/dynamic ref
+ * forwarding bug (the wrapped component's ref is never assigned).
+ */
 export interface PotreeViewerHandle {
   resetView: () => void;
   setEdlEnabled: (enabled: boolean) => void;
   setPointBudget: (budget: number) => void;
   setPointSize: (size: number) => void;
+  setColorMode: (mode: ColorMode) => void;
+  setBackground: (mode: BackgroundMode) => void;
 }
 
 interface PotreeViewerProps {
   metadataUrl: string;
   datasetName: string;
   onStateChange?: (state: ViewerLoadState, error?: string) => void;
+  /** Called once with a live handle object as soon as the point cloud is ready. */
+  onReady?: (handle: PotreeViewerHandle) => void;
 }
 
-export const PotreeViewer = forwardRef<PotreeViewerHandle, PotreeViewerProps>(function PotreeViewer(
-  { metadataUrl, datasetName, onStateChange },
-  ref
-) {
+export function PotreeViewer({ metadataUrl, datasetName, onStateChange, onReady }: PotreeViewerProps) {
   const renderAreaRef = useRef<HTMLDivElement>(null);
   const viewerInstanceRef = useRef<PotreeViewerInstance | null>(null);
   const potreeRef = useRef<PotreeGlobal | null>(null);
+  // The loaded point cloud's `material` is where size/color/shape actually
+  // live — kept in a ref so the handle methods can reach it without
+  // re-triggering the load effect.
+  const pointcloudRef = useRef<PotreePointCloud | null>(null);
+  // Stable ref to onReady so the effect closure never captures a stale copy.
+  const onReadyRef = useRef(onReady);
+  useEffect(() => { onReadyRef.current = onReady; }, [onReady]);
 
   const [state, setState] = useState<ViewerLoadState>('loading-library');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      resetView: () => {
-        viewerInstanceRef.current?.fitToScreen();
-      },
-      setEdlEnabled: (enabled: boolean) => {
-        viewerInstanceRef.current?.setEDLEnabled(enabled);
-      },
-      setPointBudget: (budget: number) => {
-        viewerInstanceRef.current?.setPointBudget(budget);
-      },
-      setPointSize: (size: number) => {
-        viewerInstanceRef.current?.setPointSize?.(size);
-      }
-    }),
-    []
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -202,12 +231,49 @@ export const PotreeViewer = forwardRef<PotreeViewerHandle, PotreeViewerProps>(fu
             return;
           }
 
+          pointcloudRef.current = pointcloud;
           pointcloud.position.set(0, 0, 0);
           pointcloud.material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+          pointcloud.material.activeAttributeName = 'rgba';
+          pointcloud.material.size = 1;
 
           viewer.scene.addPointCloud(pointcloud);
           viewer.fitToScreen();
 
+          // Build the handle object and pass it directly to the parent.
+          // This sidesteps the next/dynamic forwardRef bug entirely.
+          const handle: PotreeViewerHandle = {
+            resetView: () => {
+              viewerInstanceRef.current?.fitToScreen();
+            },
+            setEdlEnabled: (enabled: boolean) => {
+              viewerInstanceRef.current?.setEDLEnabled(enabled);
+            },
+            setPointBudget: (budget: number) => {
+              viewerInstanceRef.current?.setPointBudget(budget);
+            },
+            setPointSize: (size: number) => {
+              if (pointcloudRef.current) {
+                pointcloudRef.current.material.size = size;
+              }
+            },
+            setColorMode: (mode: ColorMode) => {
+              const material = pointcloudRef.current?.material;
+              if (!material) return;
+              const map: Record<ColorMode, string> = {
+                rgb: 'rgba',
+                height: 'elevation',
+                intensity: 'intensity',
+                classification: 'classification'
+              };
+              material.activeAttributeName = map[mode];
+            },
+            setBackground: (mode: BackgroundMode) => {
+              viewerInstanceRef.current?.setBackground?.(mode);
+            }
+          };
+
+          onReadyRef.current?.(handle);
           updateState('ready');
         });
       } catch (err) {
@@ -221,6 +287,7 @@ export const PotreeViewer = forwardRef<PotreeViewerHandle, PotreeViewerProps>(fu
       cancelled = true;
       viewerInstanceRef.current = null;
       potreeRef.current = null;
+      pointcloudRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metadataUrl, datasetName]);
@@ -250,4 +317,4 @@ export const PotreeViewer = forwardRef<PotreeViewerHandle, PotreeViewerProps>(fu
       )}
     </div>
   );
-});
+}

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { DatasetDetailResponse } from '@/lib/types';
-import type { PotreeViewerHandle, ViewerLoadState } from '@/components/PotreeViewer';
+import type { BackgroundMode, ColorMode, PotreeViewerHandle, ViewerLoadState } from '@/components/PotreeViewer';
 
 // PotreeViewer touches `window` and the DOM directly (script injection,
 // WebGL canvas), so it must never run during server-side rendering.
@@ -17,10 +17,26 @@ const PotreeViewer = dynamic(
 
 const POINT_BUDGET_PRESETS = [500_000, 1_000_000, 2_000_000, 5_000_000] as const;
 
+const COLOR_MODES: { value: ColorMode; label: string; hint: string }[] = [
+  { value: 'rgb', label: 'RGB', hint: 'True color, if the scan includes color data' },
+  { value: 'height', label: 'Height', hint: 'Gradient by elevation (low → high)' },
+  { value: 'intensity', label: 'Intensity', hint: 'Grayscale by laser return strength' },
+  { value: 'classification', label: 'Classification', hint: 'By point category, if classified' }
+];
+
+const BACKGROUND_MODES: { value: BackgroundMode; label: string }[] = [
+  { value: 'gradient', label: 'Gradient' },
+  { value: 'black', label: 'Black' },
+  { value: 'white', label: 'White' }
+];
+
 export default function ViewerPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const datasetId = params.id;
-  const viewerRef = useRef<PotreeViewerHandle>(null);
+  // Store the handle delivered by PotreeViewer's onReady callback.
+  // Using a plain ref avoids the next/dynamic forwardRef bug where the
+  // ref is never assigned to the dynamically-loaded component.
+  const viewerHandleRef = useRef<PotreeViewerHandle | null>(null);
 
   const [detail, setDetail] = useState<DatasetDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +44,12 @@ export default function ViewerPage(): JSX.Element {
   const [edlEnabled, setEdlEnabled] = useState(true);
   const [pointBudget, setPointBudget] = useState<number>(2_000_000);
   const [pointSize, setPointSizeState] = useState<number>(1);
+  const [colorMode, setColorModeState] = useState<ColorMode>('rgb');
+  const [background, setBackgroundState] = useState<BackgroundMode>('gradient');
+
+  const handleViewerReady = useCallback((handle: PotreeViewerHandle) => {
+    viewerHandleRef.current = handle;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,35 +79,46 @@ export default function ViewerPage(): JSX.Element {
   }, [datasetId]);
 
   const handleResetView = useCallback(() => {
-    viewerRef.current?.resetView();
+    viewerHandleRef.current?.resetView();
   }, []);
 
   const handleToggleEdl = useCallback(() => {
     setEdlEnabled((prev) => {
       const next = !prev;
-      viewerRef.current?.setEdlEnabled(next);
+      viewerHandleRef.current?.setEdlEnabled(next);
       return next;
     });
   }, []);
 
   const handlePointBudgetChange = useCallback((value: number) => {
     setPointBudget(value);
-    viewerRef.current?.setPointBudget(value);
+    viewerHandleRef.current?.setPointBudget(value);
   }, []);
 
   const handlePointSizeChange = useCallback((value: number) => {
     setPointSizeState(value);
-    viewerRef.current?.setPointSize(value);
+    viewerHandleRef.current?.setPointSize(value);
+  }, []);
+
+  const handleColorModeChange = useCallback((mode: ColorMode) => {
+    setColorModeState(mode);
+    viewerHandleRef.current?.setColorMode(mode);
+  }, []);
+
+  const handleBackgroundChange = useCallback((mode: BackgroundMode) => {
+    setBackgroundState(mode);
+    viewerHandleRef.current?.setBackground(mode);
   }, []);
 
   const isReady = !error && detail?.status === 'ready' && viewerState === 'ready';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] h-screen">
-      {/* Sidebar: layout mirrors the team's viewer-sidebar (340px, light
-          panel), but every control here maps to a real Potree Viewer API
-          call — no color-mode / layer / measure controls, since those are
-          features of a different, custom viewer, not Potree itself. */}
+      {/* Sidebar: every control here maps to a real Potree Viewer API call
+          (material.size, material.pointColorType, viewer.setBackground,
+          viewer.setPointBudget, viewer.setEDLEnabled) — no controls for
+          things Potree can't actually do, like custom/arbitrary color
+          layers or turning the cloud into a solid mesh. */}
       <aside className="bg-neutral-50 border-r border-black/[0.08] p-[18px] overflow-auto hidden lg:block">
         <Link href="/datasets" className="flex items-center gap-2.5 font-bold tracking-tight text-neutral-800 mb-4">
           <span
@@ -141,6 +174,45 @@ export default function ViewerPage(): JSX.Element {
           </p>
         </ControlCard>
 
+        <ControlCard label="Color">
+          <select
+            value={colorMode}
+            onChange={(e) => handleColorModeChange(e.target.value as ColorMode)}
+            disabled={!isReady}
+            className="w-full rounded-md2 border border-black/[0.09] bg-[#f8f8fa] px-3.5 py-3 text-neutral-800 outline-none disabled:opacity-50"
+          >
+            {COLOR_MODES.map((mode) => (
+              <option key={mode.value} value={mode.value}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-[0.72rem] text-neutral-500 mt-2 leading-relaxed">
+            {COLOR_MODES.find((m) => m.value === colorMode)?.hint}
+          </p>
+        </ControlCard>
+
+        <ControlCard label="Background">
+          <div className="flex gap-2">
+            {BACKGROUND_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => handleBackgroundChange(mode.value)}
+                disabled={!isReady}
+                className={[
+                  'flex-1 rounded-full px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50',
+                  background === mode.value
+                    ? 'bg-accent-50 text-accent-500 border border-accent-100'
+                    : 'bg-neutral-200 text-neutral-700'
+                ].join(' ')}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </ControlCard>
+
         <ControlCard label="Display">
           <button
             type="button"
@@ -156,16 +228,14 @@ export default function ViewerPage(): JSX.Element {
         </ControlCard>
 
         <ControlCard label="Camera">
-          <div className="grid grid-cols-1 gap-2.5">
-            <button
-              type="button"
-              onClick={handleResetView}
-              disabled={!isReady}
-              className="rounded-full bg-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-800 hover:bg-neutral-400 transition-colors disabled:opacity-50"
-            >
-              Fit to screen
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleResetView}
+            disabled={!isReady}
+            className="w-full rounded-full bg-neutral-300 px-4 py-2.5 text-sm font-bold text-neutral-800 hover:bg-neutral-400 transition-colors disabled:opacity-50"
+          >
+            Fit to screen
+          </button>
         </ControlCard>
 
         <ControlCard label="Info">
@@ -197,10 +267,10 @@ export default function ViewerPage(): JSX.Element {
 
         {!error && detail && detail.status === 'ready' && detail.metadata_url && (
           <PotreeViewer
-            ref={viewerRef}
             metadataUrl={detail.metadata_url}
             datasetName={datasetId}
             onStateChange={setViewerState}
+            onReady={handleViewerReady}
           />
         )}
 
