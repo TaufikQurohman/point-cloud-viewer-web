@@ -15,6 +15,8 @@ import { generateUniqueDatasetId } from '@/lib/utils/slug';
 import { DatasetLogger } from '@/lib/utils/logger';
 import { isDirectFormat, requiresPdalConversion, validateUploadedFile } from '@/lib/utils/validation';
 import { convertToLaz } from '@/lib/services/pdal.service';
+import { convertToLazWithOutlierRemoval } from '@/lib/services/pdal-pipeline.service';
+import { inspectPointCloudMetadata } from '@/lib/services/pdal-inspect.service';
 import { convertToPotree } from '@/lib/services/potree.service';
 import { AppError, type DatasetRecord, type SupportedFormat } from '@/lib/types';
 
@@ -151,17 +153,28 @@ export async function processUpload(input: ProcessUploadInput): Promise<ProcessU
     let laszFilePath: string;
 
     if (isDirectFormat(inputFormat)) {
-      // Case A: LAS/LAZ go straight to PotreeConverter.
-      await logger.info('validation', 'Direct format detected, skipping PDAL', {
+      // Case A: LAS/LAZ — run through PDAL pipeline (outlier removal) before
+      // PotreeConverter. This ensures outlier removal and metadata inspection
+      // apply consistently to all formats, not just PDAL-converted ones.
+      await logger.info('validation', 'Direct format detected — running PDAL pipeline for outlier removal', {
         inputFormat
       });
-      laszFilePath = uploadedFilePath;
-    } else if (requiresPdalConversion(inputFormat)) {
-      // Case B: normalize via PDAL first.
       record = { ...record, status: 'converting', updatedAt: new Date().toISOString() };
       await saveRecord(record);
 
-      const pdalResult = await convertToLaz({
+      const pdalResult = await convertToLazWithOutlierRemoval({
+        inputFilePath: uploadedFilePath,
+        datasetId,
+        logger
+      });
+      laszFilePath = pdalResult.outputFilePath;
+    } else if (requiresPdalConversion(inputFormat)) {
+      // Case B: E57/PLY/PTS/XYZ — normalize AND apply outlier removal via
+      // PDAL pipeline (same function, different reader auto-selected by PDAL).
+      record = { ...record, status: 'converting', updatedAt: new Date().toISOString() };
+      await saveRecord(record);
+
+      const pdalResult = await convertToLazWithOutlierRemoval({
         inputFilePath: uploadedFilePath,
         datasetId,
         logger
@@ -173,7 +186,13 @@ export async function processUpload(input: ProcessUploadInput): Promise<ProcessU
       throw new AppError(`Unsupported file format: ${inputFormat}`, 400, 'UNSUPPORTED_FORMAT');
     }
 
-    // 3. Run PotreeConverter.
+    // 3. Inspect point cloud metadata to detect available dimensions.
+    //    This runs BEFORE PotreeConverter so capabilities info is available
+    //    even if Potree conversion fails for some reason. Failures are
+    //    non-fatal — the pipeline continues with fallback capabilities.
+    const inspectResult = await inspectPointCloudMetadata(laszFilePath, logger);
+
+    // 4. Run PotreeConverter.
     record = { ...record, status: 'processing', updatedAt: new Date().toISOString() };
     await saveRecord(record);
 
@@ -189,13 +208,18 @@ export async function processUpload(input: ProcessUploadInput): Promise<ProcessU
       ...record,
       status: 'ready',
       updatedAt: new Date().toISOString(),
-      metadataUrl
+      metadataUrl,
+      // Smart Pipeline additions — always present for new datasets
+      pointCount: inspectResult.pointCount,
+      capabilities: inspectResult.capabilities
     };
     await saveRecord(record);
 
     await logger.info('system', 'Dataset pipeline completed successfully', {
       datasetId,
-      metadataUrl
+      metadataUrl,
+      pointCount: inspectResult.pointCount,
+      capabilities: inspectResult.capabilities
     });
 
     void potreeResult; // metadataPath already implied by metadataUrl

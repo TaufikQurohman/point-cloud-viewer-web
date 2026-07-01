@@ -44,7 +44,11 @@ export async function GET(
         original_file_name: record.originalFileName,
         created_at: record.createdAt,
         updated_at: record.updatedAt,
-        ...(record.error ? { error: record.error } : {})
+        ...(record.error ? { error: record.error } : {}),
+        // Smart Pipeline fields — undefined for datasets processed before
+        // this feature was added; omitted from JSON when absent.
+        ...(record.pointCount !== undefined ? { point_count: record.pointCount } : {}),
+        ...(record.capabilities !== undefined ? { capabilities: record.capabilities } : {})
       },
       { status: 200 }
     );

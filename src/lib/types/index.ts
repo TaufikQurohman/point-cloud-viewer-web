@@ -25,6 +25,20 @@ export type PdalFormat = (typeof PDAL_FORMATS)[number];
 export const SUPPORTED_FORMATS = [...DIRECT_FORMATS, ...PDAL_FORMATS] as const;
 export type SupportedFormat = (typeof SUPPORTED_FORMATS)[number];
 
+/**
+ * Detected capabilities of a point cloud file, populated during ingestion
+ * by running `pdal info --metadata`. All fields are booleans so the viewer
+ * can choose the best default color mode automatically.
+ */
+export interface PointCloudCapabilities {
+  /** True if Red, Green, Blue dimensions are present in the file. */
+  hasRGB: boolean;
+  /** True if Intensity dimension is present AND has non-zero variance. */
+  hasIntensity: boolean;
+  /** True if Classification dimension exists AND has more than one unique class. */
+  hasClassification: boolean;
+}
+
 /** Persisted record describing a single dataset on disk. */
 export interface DatasetRecord {
   /** Filesystem-safe, unique identifier and directory name. */
@@ -47,6 +61,19 @@ export interface DatasetRecord {
   error?: string;
   /** Relative path (under storage/logs) to this dataset's log file. */
   logFile: string;
+  /**
+   * Total number of points in the dataset, extracted from PDAL metadata.
+   * Optional — not present in datasets processed before this feature was added.
+   */
+  pointCount?: number;
+  /**
+   * Detected data capabilities of the point cloud, used by the viewer to
+   * pick the best initial color mode automatically.
+   * Optional — not present in datasets processed before this feature was added.
+   * The viewer must treat absence as "capabilities unknown" and fall back
+   * to elevation coloring.
+   */
+  capabilities?: PointCloudCapabilities;
 }
 
 /** Response body for POST /api/v1/upload */
@@ -77,6 +104,10 @@ export interface DatasetDetailResponse {
   created_at?: string;
   updated_at?: string;
   error?: string;
+  /** Total point count — present only for datasets processed with Smart Pipeline. */
+  point_count?: number;
+  /** Detected capabilities — present only for datasets processed with Smart Pipeline. */
+  capabilities?: PointCloudCapabilities;
 }
 
 /** Response body for DELETE /api/v1/datasets/[id] */

@@ -29,10 +29,15 @@ export interface RunProcessOptions {
   onStdout?: (chunk: string) => void;
   /** Optional callback invoked with each stderr chunk, for live logging. */
   onStderr?: (chunk: string) => void;
+  /**
+   * Optional string to write to the child process's stdin, then close it.
+   * Used by the PDAL pipeline service to pass pipeline JSON via --stdin.
+   */
+  stdin?: string;
 }
 
 export async function runProcess(options: RunProcessOptions): Promise<ProcessResult> {
-  const { command, args, cwd, timeoutMs, onStdout, onStderr } = options;
+  const { command, args, cwd, timeoutMs, onStdout, onStderr, stdin } = options;
 
   const startedAt = Date.now();
 
@@ -49,6 +54,13 @@ export async function runProcess(options: RunProcessOptions): Promise<ProcessRes
         shell: false,
         windowsHide: true
       });
+
+      // If the caller provided stdin data, write it and immediately close
+      // the stream so the child process knows there is no more input.
+      if (stdin !== undefined && child.stdin) {
+        child.stdin.write(stdin, 'utf-8');
+        child.stdin.end();
+      }
     } catch (spawnError) {
       // Executable not found, no permission, etc.
       resolve({

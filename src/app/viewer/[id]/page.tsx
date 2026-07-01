@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { DatasetDetailResponse } from '@/lib/types';
+import type { DatasetDetailResponse, PointCloudCapabilities } from '@/lib/types';
 import type { BackgroundMode, ColorMode, PotreeViewerHandle, ViewerLoadState } from '@/components/PotreeViewer';
 
 // PotreeViewer touches `window` and the DOM directly (script injection,
@@ -43,9 +43,12 @@ export default function ViewerPage(): JSX.Element {
   const [viewerState, setViewerState] = useState<ViewerLoadState>('loading-library');
   const [edlEnabled, setEdlEnabled] = useState(true);
   const [pointBudget, setPointBudget] = useState<number>(2_000_000);
-  const [pointSize, setPointSizeState] = useState<number>(1);
-  const [colorMode, setColorModeState] = useState<ColorMode>('rgb');
+  const [pointSize, setPointSizeState] = useState<number>(1.5);
+  const [colorMode, setColorModeState] = useState<ColorMode>('height');
   const [background, setBackgroundState] = useState<BackgroundMode>('gradient');
+  // Capabilities from Smart Pipeline — undefined for legacy datasets
+  const [capabilities, setCapabilities] = useState<PointCloudCapabilities | undefined>(undefined);
+  const [pointCount, setPointCount] = useState<number | undefined>(undefined);
 
   const handleViewerReady = useCallback((handle: PotreeViewerHandle) => {
     viewerHandleRef.current = handle;
@@ -65,6 +68,36 @@ export default function ViewerPage(): JSX.Element {
           return;
         }
         setDetail(data);
+
+        // ── Smart Pipeline: sync initial sidebar state from capabilities ──
+        // This keeps the sidebar UI in sync with what the viewer will
+        // auto-select, so controls reflect the actual initial state.
+        if (data.capabilities) {
+          setCapabilities(data.capabilities);
+          // Mirror the same priority logic used in PotreeViewer.tsx
+          if (data.capabilities.hasRGB) {
+            setColorModeState('rgb');
+          } else if (data.capabilities.hasIntensity) {
+            setColorModeState('intensity');
+          } else {
+            setColorModeState('height'); // elevation fallback
+          }
+        } else {
+          // Legacy dataset: no capabilities — default to height
+          setColorModeState('height');
+        }
+
+        if (data.point_count !== undefined) {
+          setPointCount(data.point_count);
+          // Mirror point size auto-detect from PotreeViewer.tsx
+          if (data.point_count < 100_000) {
+            setPointSizeState(2.0);
+          } else if (data.point_count > 1_000_000) {
+            setPointSizeState(1.0);
+          } else {
+            setPointSizeState(1.5);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load dataset');
@@ -269,6 +302,8 @@ export default function ViewerPage(): JSX.Element {
           <PotreeViewer
             metadataUrl={detail.metadata_url}
             datasetName={datasetId}
+            capabilities={capabilities}
+            pointCount={pointCount}
             onStateChange={setViewerState}
             onReady={handleViewerReady}
           />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { loadScriptsInOrder, loadStylesheet } from '@/lib/utils/script-loader';
+import type { PointCloudCapabilities } from '@/lib/types';
 
 /**
  * Loosely-typed shape of the global `Potree` object exposed by
@@ -142,12 +143,23 @@ export interface PotreeViewerHandle {
 interface PotreeViewerProps {
   metadataUrl: string;
   datasetName: string;
+  /**
+   * Detected data capabilities from the Smart Pipeline.
+   * When provided, the viewer uses these to pick the best initial color mode
+   * automatically. When absent (legacy datasets), falls back to 'elevation'.
+   */
+  capabilities?: PointCloudCapabilities;
+  /**
+   * Total number of points in the dataset, used to auto-set an appropriate
+   * initial point size. When absent, a neutral default size is used.
+   */
+  pointCount?: number;
   onStateChange?: (state: ViewerLoadState, error?: string) => void;
   /** Called once with a live handle object as soon as the point cloud is ready. */
   onReady?: (handle: PotreeViewerHandle) => void;
 }
 
-export function PotreeViewer({ metadataUrl, datasetName, onStateChange, onReady }: PotreeViewerProps) {
+export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCount, onStateChange, onReady }: PotreeViewerProps) {
   const renderAreaRef = useRef<HTMLDivElement>(null);
   const viewerInstanceRef = useRef<PotreeViewerInstance | null>(null);
   const potreeRef = useRef<PotreeGlobal | null>(null);
@@ -234,8 +246,30 @@ export function PotreeViewer({ metadataUrl, datasetName, onStateChange, onReady 
           pointcloudRef.current = pointcloud;
           pointcloud.position.set(0, 0, 0);
           pointcloud.material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-          pointcloud.material.activeAttributeName = 'rgba';
-          pointcloud.material.size = 1;
+
+          // ── Smart Pipeline: auto-detect initial color mode ────────────────
+          // Priority: RGB > Intensity > Elevation (always available from Z).
+          // If capabilities is absent (legacy dataset), fall back to 'elevation'
+          // so the viewer always shows something meaningful.
+          const autoAttribute: string = capabilities?.hasRGB
+            ? 'rgba'
+            : capabilities?.hasIntensity
+            ? 'intensity'
+            : 'elevation';
+          pointcloud.material.activeAttributeName = autoAttribute;
+
+          // ── Smart Pipeline: auto-set initial point size ───────────────────
+          // Denser clouds benefit from smaller points; sparse clouds need
+          // larger points to avoid looking completely empty.
+          const autoSize: number =
+            pointCount === undefined
+              ? 1.5  // neutral default when point count is unknown
+              : pointCount < 100_000
+              ? 2.0  // sparse cloud — make points more visible
+              : pointCount > 1_000_000
+              ? 1.0  // dense cloud — keep rendering fast
+              : 1.5; // mid-range
+          pointcloud.material.size = autoSize;
 
           viewer.scene.addPointCloud(pointcloud);
           viewer.fitToScreen();
