@@ -183,7 +183,7 @@ export function PotreeViewer({ metadataUrl, datasetName, onStateChange, onReady 
         } catch (styleErr) {
           throw new Error(
             (styleErr as Error).message +
-              ' — a stylesheet failed to load. Check that public/potree/ contains the full Potree build (see public/potree/README.md).'
+            ' — a stylesheet failed to load. Check that public/potree/ contains the full Potree build (see public/potree/README.md).'
           );
         }
 
@@ -192,7 +192,7 @@ export function PotreeViewer({ metadataUrl, datasetName, onStateChange, onReady 
         } catch (scriptErr) {
           throw new Error(
             (scriptErr as Error).message +
-              ' — verify this exact file exists under public/potree/. See public/potree/README.md for the expected layout.'
+            ' — verify this exact file exists under public/potree/. See public/potree/README.md for the expected layout.'
           );
         }
 
