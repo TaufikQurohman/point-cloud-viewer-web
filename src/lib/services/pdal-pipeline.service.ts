@@ -16,7 +16,9 @@ import type { DatasetLogger } from '@/lib/utils/logger';
  * PotreeConverter, so the octree structure itself is clean.
  *
  * Pipeline stages:
- *   1. readers.las  — reads any LAS / LAZ / E57 (etc.) supported by PDAL
+ *   1. (auto reader) — PDAL auto-selects the reader based on file extension:
+ *                      readers.las for LAS/LAZ, readers.e57 for E57,
+ *                      readers.ply for PLY, readers.text for PTS/XYZ, etc.
  *   2. filters.outlier (SOR) — removes statistical outliers
  *   3. writers.las  — writes compressed LAZ output
  *
@@ -61,12 +63,16 @@ export async function convertToLazWithOutlierRemoval(
   const outputFilePath = path.join(config.storage.normalized, `${datasetId}.laz`);
 
   // Build the PDAL pipeline JSON.
-  // readers.las is the generic reader that handles LAS, LAZ, and can fall
-  // back for other formats — PDAL picks the right driver automatically based
-  // on the file extension / magic bytes.
+  // We intentionally omit the "type" field on the reader so that PDAL
+  // auto-selects the correct driver based on the file extension / magic bytes:
+  //   .las / .laz  → readers.las
+  //   .e57         → readers.e57
+  //   .ply         → readers.ply
+  //   .pts / .xyz  → readers.text
+  // Hardcoding "readers.las" here caused E57 (and PLY/PTS/XYZ) uploads to fail
+  // because PDAL cannot use the LAS reader for those formats.
   const pipeline = [
     {
-      type: 'readers.las',
       filename: inputFilePath
     },
     {

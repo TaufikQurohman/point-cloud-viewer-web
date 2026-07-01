@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  height: 100%;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -83,4 +78,21 @@ code {
   height: 100%;
   overflow: hidden;
   background-color: #15171c;
+}
+
+/**
+ * Potree's potree.css injects global rules that can set overflow:hidden /
+ * height:100% on <html> and <body>. Because that stylesheet persists in
+ * <head> across route transitions (Next.js never removes injected <link>
+ * tags), we must counter those declarations so every non-viewer page
+ * can scroll normally. The viewer page manages its own scroll-lock via
+ * inline styles set in PotreeViewer.tsx's useEffect.
+ */
+body:not(.potree-viewer-active) {
+  overflow: auto !important;
+  height: auto !important;
+}
+html:not(.potree-viewer-active) {
+  overflow: auto !important;
+  height: auto !important;
 }

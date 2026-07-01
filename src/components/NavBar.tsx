@@ -59,8 +59,14 @@ export function NavBar(): JSX.Element | null {
 function BrandMark(): JSX.Element {
   return (
     <span
-      className="h-[22px] w-[22px] rounded-[9px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.32)]"
-      style={{ background: 'linear-gradient(145deg, #1d1d1f, #6e6e73)' }}
-    />
+      className="inline-flex items-center justify-center h-[24px] w-[24px] rounded-[7px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]"
+      style={{ background: 'linear-gradient(135deg, #0071e3, #5e5ce6)' }}
+      aria-hidden="true"
+    >
+      <span className="text-white font-black leading-none select-none" style={{ fontSize: '10.5px', letterSpacing: '0.02em' }}>
+        CS
+      </span>
+    </span>
   );
 }
+

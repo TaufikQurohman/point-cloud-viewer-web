@@ -57,6 +57,18 @@ interface PotreeViewerInstance {
     };
   };
   fitToScreen: () => void;
+  /**
+   * Potree internals used during cleanup — not part of the public API but
+   * present on every Viewer instance produced by the current Potree build.
+   */
+  renderer?: {
+    dispose?: () => void;
+    domElement?: HTMLCanvasElement;
+    setAnimationLoop?: (fn: null) => void;
+  };
+  /** Some Potree builds expose stopRendering / pause to halt the RAF loop. */
+  stopRendering?: () => void;
+  pause?: () => void;
 }
 
 interface PotreeGlobal {
@@ -177,12 +189,49 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
   useEffect(() => {
     let cancelled = false;
 
+    /**
+     * We intercept document.addEventListener *before* Potree loads so we can
+     * record every listener it attaches. On cleanup we remove them all,
+     * restoring the page's natural scroll / keyboard behaviour on every
+     * subsequent route. Without this, Potree's InputHandler wheel/keydown
+     * listeners survive navigation and permanently break scroll elsewhere.
+     */
+    type ListenerEntry = {
+      type: string;
+      listener: EventListenerOrEventListenerObject;
+      options?: boolean | AddEventListenerOptions;
+    };
+    const capturedListeners: ListenerEntry[] = [];
+
+    const originalAddEventListener = document.addEventListener.bind(document);
+    const originalRemoveEventListener = document.removeEventListener.bind(document);
+
+    // Monkey-patch addEventListener so we can track what Potree registers.
+    // We restore the originals during cleanup so nothing leaks.
+    (document as unknown as Record<string, unknown>)['addEventListener'] = (
+      type: string,
+      listener: EventListenerOrEventListenerObject,
+      options?: boolean | AddEventListenerOptions
+    ) => {
+      capturedListeners.push({ type, listener, options });
+      originalAddEventListener(type, listener, options);
+    };
+
     function updateState(next: ViewerLoadState, error?: string) {
       if (cancelled) return;
       setState(next);
       if (error) setErrorMessage(error);
       onStateChange?.(next, error);
     }
+
+    // Lock scroll while the Potree viewer is active so the browser
+    // doesn't scroll the page while the user rotates/zooms the 3-D scene.
+    // The class also enables the :not(.potree-viewer-active) CSS override in
+    // globals.css that prevents potree.css from leaking overflow:hidden after
+    // navigation. These are all restored unconditionally in the cleanup below.
+    document.documentElement.classList.add('potree-viewer-active');
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     async function bootstrap() {
       if (!renderAreaRef.current) return;
@@ -254,8 +303,8 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
           const autoAttribute: string = capabilities?.hasRGB
             ? 'rgba'
             : capabilities?.hasIntensity
-            ? 'intensity'
-            : 'elevation';
+              ? 'intensity'
+              : 'elevation';
           pointcloud.material.activeAttributeName = autoAttribute;
 
           // ── Smart Pipeline: auto-set initial point size ───────────────────
@@ -265,10 +314,10 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
             pointCount === undefined
               ? 1.5  // neutral default when point count is unknown
               : pointCount < 100_000
-              ? 2.0  // sparse cloud — make points more visible
-              : pointCount > 1_000_000
-              ? 1.0  // dense cloud — keep rendering fast
-              : 1.5; // mid-range
+                ? 2.0  // sparse cloud — make points more visible
+                : pointCount > 1_000_000
+                  ? 1.0  // dense cloud — keep rendering fast
+                  : 1.5; // mid-range
           pointcloud.material.size = autoSize;
 
           viewer.scene.addPointCloud(pointcloud);
@@ -319,6 +368,64 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
 
     return () => {
       cancelled = true;
+
+      // ── Restore patched addEventListener before anything else ─────────────
+      // Put the original back so subsequent pages work normally.
+      (document as unknown as Record<string, unknown>)['addEventListener'] = originalAddEventListener;
+
+      // ── Remove every document-level listener Potree registered ────────────
+      // Potree's InputHandler binds wheel, keydown, keyup, contextmenu, and
+      // pointer events directly to `document`. They survive React's component
+      // unmount and break scroll / keyboard on every subsequent page unless
+      // we explicitly remove them here.
+      for (const { type, listener, options } of capturedListeners) {
+        try {
+          originalRemoveEventListener(type, listener, options);
+        } catch (_) {
+          // Ignore — some listeners may already have been removed by Potree itself.
+        }
+      }
+
+      // ── Potree viewer teardown ────────────────────────────────────────────
+      try {
+        const v = viewerInstanceRef.current;
+        // Stop the THREE.js render / animation loop first so no more
+        // rAF callbacks fire after this component is gone.
+        v?.stopRendering?.();
+        v?.pause?.();
+        v?.renderer?.setAnimationLoop?.(null);
+        // Dispose the WebGL renderer — this also removes the canvas from DOM
+        // (if Potree appended it there) and releases GPU memory.
+        v?.renderer?.dispose?.();
+      } catch (_) {
+        // Ignore — Potree may not expose these methods in all builds.
+      }
+
+      // Clear every child of the render area so the THREE.js <canvas> and
+      // all wheel/mouse listeners bound to it are truly removed from the DOM.
+      if (renderAreaRef.current) {
+        renderAreaRef.current.innerHTML = '';
+      }
+
+      // ── Restore page scroll ───────────────────────────────────────────────
+      // Remove the active-viewer class so the CSS overrides in globals.css
+      // allow html/body to scroll freely on subsequent pages.
+      document.documentElement.classList.remove('potree-viewer-active');
+      // We explicitly locked scroll on mount (above). Restore both html and
+      // body so every subsequent page (datasets, homepage) can scroll freely.
+      document.body.style.overflow = '';
+      document.body.style.overflowX = '';
+      document.body.style.overflowY = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overflowX = '';
+      document.documentElement.style.overflowY = '';
+      // Also remove touch-action overrides Potree may have set.
+      document.body.style.touchAction = '';
+      document.documentElement.style.touchAction = '';
+      // Remove height constraints Potree's CSS may have injected.
+      document.body.style.height = '';
+      document.documentElement.style.height = '';
+
       viewerInstanceRef.current = null;
       potreeRef.current = null;
       pointcloudRef.current = null;

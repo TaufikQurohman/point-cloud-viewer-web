@@ -146,7 +146,7 @@ export default function ViewerPage(): JSX.Element {
   const isReady = !error && detail?.status === 'ready' && viewerState === 'ready';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] h-screen">
+    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] h-screen overflow-hidden">
       {/* Sidebar: every control here maps to a real Potree Viewer API call
           (material.size, material.pointColorType, viewer.setBackground,
           viewer.setPointBudget, viewer.setEDLEnabled) — no controls for
@@ -155,11 +155,17 @@ export default function ViewerPage(): JSX.Element {
       <aside className="bg-neutral-50 border-r border-black/[0.08] p-[18px] overflow-auto hidden lg:block">
         <Link href="/datasets" className="flex items-center gap-2.5 font-bold tracking-tight text-neutral-800 mb-4">
           <span
-            className="h-[22px] w-[22px] rounded-[9px]"
-            style={{ background: 'linear-gradient(145deg, #1d1d1f, #6e6e73)' }}
-          />
+            className="inline-flex items-center justify-center h-[24px] w-[24px] rounded-[7px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]"
+            style={{ background: 'linear-gradient(135deg, #0071e3, #5e5ce6)' }}
+            aria-hidden="true"
+          >
+            <span className="text-white font-black leading-none select-none" style={{ fontSize: '10.5px', letterSpacing: '0.02em' }}>
+              CS
+            </span>
+          </span>
           <span>CloudScope</span>
         </Link>
+
 
         <ControlCard label="Dataset">
           <p className="font-mono text-sm text-neutral-800 break-words">{datasetId}</p>
