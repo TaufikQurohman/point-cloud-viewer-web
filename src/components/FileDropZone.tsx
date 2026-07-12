@@ -4,6 +4,9 @@ import { useCallback, useRef, useState } from 'react';
 
 export const ACCEPTED_EXTENSIONS = ['las', 'laz', 'e57', 'ply', 'pts', 'xyz'] as const;
 
+/** Client-side guard matching the server's MAX_UPLOAD_SIZE_BYTES default (2 GB). */
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024;
+
 interface FileDropZoneProps {
   onFileSelected: (file: File) => void;
   disabled?: boolean;
@@ -28,13 +31,20 @@ export function FileDropZone({
   selectedFile
 }: FileDropZoneProps): JSX.Element {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
       if (!files || files.length === 0) return;
       const file = files[0];
-      if (file) onFileSelected(file);
+      if (!file) return;
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setSizeError(`File is too large (${formatBytes(file.size)}). Maximum allowed size is 2 GB.`);
+        return;
+      }
+      setSizeError(null);
+      onFileSelected(file);
     },
     [onFileSelected]
   );
@@ -117,7 +127,12 @@ export function FileDropZone({
             </span>
           ))}
         </div>
+        <p className="mt-3 text-[0.75rem] text-neutral-500">Max file size: 2 GB</p>
       </div>
+
+      {sizeError && (
+        <p className="mt-2 text-sm text-red-600">{sizeError}</p>
+      )}
 
       {selectedFile && !isValidExtension && (
         <p className="mt-2 text-sm text-red-600">

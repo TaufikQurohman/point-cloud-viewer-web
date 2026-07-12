@@ -45,10 +45,10 @@ export function NavBar(): JSX.Element | null {
             );
           })}
           <Link
-            href="/upload"
+            href="/datasets"
             className="ml-1 inline-flex items-center justify-center rounded-full border border-black/[0.09] bg-white/[0.65] px-3.5 py-2 text-sm font-bold text-neutral-800 hover:bg-white transition-colors"
           >
-            Open Viewer
+            View datasets
           </Link>
         </nav>
       </header>

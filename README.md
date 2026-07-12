@@ -38,9 +38,9 @@ User
  ↓ upload file
 Validation Layer (format + size check)
  ↓
-Preprocessing Layer (PDAL)         — only for E57 / PLY / PTS / XYZ
- ↓
-Normalized LAZ Dataset
+PDAL Pipeline (outlier removal)         — all formats, including LAS/LAZ
+ ↓ (E57/PLY/PTS/XYZ also normalized to LAZ here)
+PDAL Inspect (metadata detection)       — RGB / Intensity / Classification
  ↓
 PotreeConverter
  ↓
@@ -51,8 +51,8 @@ Filesystem Storage (storage/converted/{datasetId}/)
 Potree Viewer (browser, via /api/v1/storage/converted/...)
 ```
 
-LAS/LAZ files skip the PDAL step and go directly to PotreeConverter.
-All other supported formats are normalized to LAZ by PDAL first.
+All formats (including LAS/LAZ) pass through the PDAL outlier-removal pipeline.
+E57, PLY, PTS, and XYZ are additionally normalized to LAZ before PotreeConverter.
 
 ---
 
@@ -221,8 +221,9 @@ Then copy the resulting `build/` and `libs/` folders into
 ## Installation
 
 ```bash
-git clone <this-repository-url>
-cd point-cloud-viewer
+
+git clone https://github.com/TaufikQurohman/point-cloud-viewer-web
+cd point-cloud-viewer-web
 npm install
 ```
 

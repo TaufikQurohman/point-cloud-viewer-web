@@ -279,15 +279,31 @@ export default function ViewerPage(): JSX.Element {
 
         <ControlCard label="Info">
           <dl className="space-y-2 text-sm">
-            <InfoRow label="Status" value={detail?.status ?? '—'} />
-            <InfoRow label="File" value={detail?.original_file_name ?? '—'} />
-            <InfoRow label="Metadata" value={detail?.metadata_url ?? '—'} />
+            <InfoRow label="Status"  value={detail?.status ?? '—'} />
+            <InfoRow label="File"    value={detail?.original_file_name ?? '—'} />
+            {pointCount !== undefined && (
+              <InfoRow label="Points" value={pointCount.toLocaleString()} />
+            )}
           </dl>
         </ControlCard>
+
+        {capabilities && (
+          <ControlCard label="Data channels">
+            <div className="flex flex-wrap gap-1.5">
+              <CapabilityChip label="RGB" active={capabilities.hasRGB} />
+              <CapabilityChip label="Intensity" active={capabilities.hasIntensity} />
+              <CapabilityChip label="Classification" active={capabilities.hasClassification} />
+              <CapabilityChip label="Elevation" active={true} alwaysOn />
+            </div>
+            <p className="text-[0.72rem] text-neutral-500 mt-2 leading-relaxed">
+              Detected from the point cloud metadata. Green = dimension present in this dataset.
+            </p>
+          </ControlCard>
+        )}
       </aside>
 
       {/* Main viewer surface */}
-      <main className="relative bg-[#15171c] min-w-0">
+      <div className="relative bg-[#15171c] min-w-0">
         <header className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-[26px] border border-white/[0.08] bg-white/[0.06] backdrop-blur-xl px-5 py-3.5 lg:hidden">
           <Link href="/datasets" className="text-sm text-white/70 hover:text-white transition-colors">
             ← Datasets
@@ -338,7 +354,7 @@ export default function ViewerPage(): JSX.Element {
             Loading dataset…
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
@@ -358,5 +374,35 @@ function InfoRow({ label, value }: { label: string; value: string }): JSX.Elemen
       <dt className="text-neutral-500 font-bold">{label}</dt>
       <dd className="text-neutral-800 break-words m-0">{value}</dd>
     </div>
+  );
+}
+
+function CapabilityChip({
+  label,
+  active,
+  alwaysOn = false
+}: {
+  label: string;
+  active: boolean;
+  alwaysOn?: boolean;
+}): JSX.Element {
+  return (
+    <span
+      className={[
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.75rem] font-bold border',
+        active
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-neutral-100 text-neutral-400 border-black/[0.06]'
+      ].join(' ')}
+      title={alwaysOn ? 'Always available (Z coordinate)' : active ? 'Present in this dataset' : 'Not present in this dataset'}
+    >
+      <span
+        className={[
+          'h-1.5 w-1.5 rounded-full',
+          active ? 'bg-emerald-500' : 'bg-neutral-300'
+        ].join(' ')}
+      />
+      {label}
+    </span>
   );
 }

@@ -189,6 +189,11 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
   useEffect(() => {
     let cancelled = false;
 
+    // Capture the render area element at the start of this effect so the
+    // cleanup function always clears the correct DOM node, even if the ref
+    // has been nulled out by the time cleanup runs (react-hooks/exhaustive-deps).
+    const renderArea = renderAreaRef.current;
+
     /**
      * We intercept document.addEventListener *before* Potree loads so we can
      * record every listener it attaches. On cleanup we remove them all,
@@ -234,7 +239,7 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
     document.documentElement.style.overflow = 'hidden';
 
     async function bootstrap() {
-      if (!renderAreaRef.current) return;
+      if (!renderArea) return;
 
       try {
         updateState('loading-library');
@@ -269,7 +274,7 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
 
         updateState('loading-dataset');
 
-        const viewer = new Potree.Viewer(renderAreaRef.current);
+        const viewer = new Potree.Viewer(renderArea);
         viewerInstanceRef.current = viewer;
 
         viewer.setEDLEnabled(true);
@@ -403,8 +408,8 @@ export function PotreeViewer({ metadataUrl, datasetName, capabilities, pointCoun
 
       // Clear every child of the render area so the THREE.js <canvas> and
       // all wheel/mouse listeners bound to it are truly removed from the DOM.
-      if (renderAreaRef.current) {
-        renderAreaRef.current.innerHTML = '';
+      if (renderArea) {
+        renderArea.innerHTML = '';
       }
 
       // ── Restore page scroll ───────────────────────────────────────────────

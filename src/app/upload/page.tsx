@@ -33,15 +33,22 @@ export default function UploadPage(): JSX.Element {
 
     setErrorMessage(null);
     setResult(null);
+
+    // Show 'uploading' first so the first checklist row appears active,
+    // then yield to React's render cycle before starting the actual fetch.
     setPageState('uploading');
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
+      // Switch to 'processing' only after the file is fully assembled and
+      // the fetch is starting — both PDAL and PotreeConverter run server-side
+      // during this phase, which is what the second checklist row represents.
+      const fetchPromise = fetch('/api/v1/upload', { method: 'POST', body: formData });
       setPageState('processing');
-
-      const response = await fetch('/api/v1/upload', { method: 'POST', body: formData });
+      const response = await fetchPromise;
       const data: UploadResponse = await response.json();
 
       if (!response.ok || !data.success) {
