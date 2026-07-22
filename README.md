@@ -88,6 +88,7 @@ point-cloud-viewer/
 │   │       └── storage/converted/[...path]/route.ts  # serves Potree assets
 │   ├── components/
 │   │   ├── NavBar.tsx
+│   │   ├── HeroCanvas.tsx                 # Animated hero background canvas
 │   │   ├── FileDropZone.tsx
 │   │   ├── StatusBadge.tsx
 │   │   └── PotreeViewer.tsx               # Potree Viewer React wrapper
@@ -96,7 +97,9 @@ point-cloud-viewer/
 │       ├── types/index.ts                 # shared TypeScript types
 │       ├── services/
 │       │   ├── process-runner.ts          # reusable child_process spawn wrapper
-│       │   ├── pdal.service.ts            # PDAL conversion service
+│       │   ├── pdal.service.ts            # PDAL entry point / format routing
+│       │   ├── pdal-pipeline.service.ts   # PDAL outlier-removal pipeline
+│       │   ├── pdal-inspect.service.ts    # PDAL metadata inspection (RGB/Intensity/Class)
 │       │   ├── potree.service.ts          # PotreeConverter service
 │       │   └── dataset.service.ts         # pipeline orchestration
 │       └── utils/
